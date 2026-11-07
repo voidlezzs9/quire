@@ -42,8 +42,13 @@ function tally(text: string, re: RegExp): number {
   return [...text.matchAll(new RegExp(re.source, flags))].length;
 }
 
-function plain(scores: Record<ShapedId, number>): Reading {
-  return { form: "plain", score: 0, reason: FORM_META.plain.reason, scores };
+function plain(scores: Record<ShapedId, number>, words = 0): Reading {
+  return {
+    form: "plain",
+    score: 0,
+    reason: words >= 40 ? "A page of writing." : FORM_META.plain.reason,
+    scores,
+  };
 }
 
 /**
@@ -252,6 +257,14 @@ export function classify(text: string): Reading {
     scores.sparks *= 0.5;
   }
 
+  const sections = filled.filter((line) => /^\d{1,2}[.)]\s+\S/.test(line.trim())).length;
+  if (sections >= 2 && meet < 2) {
+    scores.minutes *= 0.2;
+    scores.list *= 0.45;
+    scores.verse *= 0.35;
+    if (dialogue < 2) scores.story *= 0.45;
+  }
+
   let best: FormId = "plain";
   let bestScore = 0;
   for (const id of ORDER) {
@@ -263,8 +276,8 @@ export function classify(text: string): Reading {
   }
 
   const threshold = 4.25;
-  if (bestScore < threshold) return plain(scores);
-  if (wc < 8 && bestScore < 6) return plain(scores);
+  if (bestScore < threshold) return plain(scores, wc);
+  if (wc < 8 && bestScore < 6) return plain(scores, wc);
 
   return {
     form: best,

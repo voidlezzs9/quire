@@ -1,5 +1,6 @@
 import { MONEY_AMOUNT } from "./currencies.ts";
 import type { FormId } from "./forms.ts";
+import { isDisplayHeading } from "./prose.ts";
 import { lineKey } from "./text.ts";
 
 function esc(value: string): string {
@@ -57,32 +58,23 @@ function markResult(escaped: string, raw: string): string {
   );
 }
 
-function isHeading(line: string): boolean {
-  const trimmed = line.trim();
-  if (/^#{1,3}\s+\S/.test(trimmed)) return true;
-  if (/^(?:ingredients|method|directions|steps|decisions|action items|next steps|attendees|agenda)$/i.test(trimmed.replace(/:$/, ""))) {
-    return true;
-  }
-  return /^[A-Z][^:]{1,40}:$/.test(trimmed);
-}
-
 /**
  * Color marks only — weight, size, and letter-spacing would desync the caret
  * from the transparent textarea sitting on top of this layer.
  */
 export function renderMarks(text: string, form: FormId, checked: readonly string[]): string {
   const done = new Set(checked);
-  return text
-    .replace(/\r\n/g, "\n")
-    .split("\n")
-    .map((line) => {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  return lines
+    .map((line, index) => {
+      const next = lines.slice(index + 1).find((item) => item.trim());
       const key = lineKey(line);
       const struck = key.length > 0 && done.has(key);
       const escaped = esc(line);
       let html = form === "code" ? markCode(line) : markWords(markInline(escaped));
       html = markMoney(html);
       html = markResult(html, line);
-      if (form !== "code" && isHeading(line)) html = `<span class="mk-h">${html}</span>`;
+      if (form !== "code" && isDisplayHeading(line, next)) html = `<span class="mk-h">${html}</span>`;
       if (struck) html = `<span class="mk-done">${html}</span>`;
       return html;
     })

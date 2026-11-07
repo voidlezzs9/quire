@@ -1,4 +1,5 @@
 import type { FormId } from "./forms.ts";
+import { isDisplayHeading } from "./prose.ts";
 import { filledLines, lineKey, wordCount } from "./text.ts";
 
 export type FoundItem = {
@@ -64,12 +65,30 @@ export function extract(form: FormId, title: string, body: string, checked: read
     case "sparks":
       return sparksCard(body, words);
     default:
-      return {
+      return outlineCard(body, words) ?? {
         stats: [stat("Words", String(words))],
         groups: [],
-        aside: words < 12 ? "A little more, and a shape will offer itself." : "Nothing is insisting yet. Keep going, or hold a shape yourself.",
+        aside: words < 12 ? "A little more, and a shape will offer itself." : words >= 40 ? "A page of writing." : "Nothing is insisting yet. Keep going, or hold a shape yourself.",
       };
   }
+}
+
+function outlineCard(body: string, words: number): ReadingCard | null {
+  const lines = body.replace(/\r\n/g, "\n").split("\n");
+  const items: FoundItem[] = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? "";
+    const next = lines.slice(i + 1).find((item) => item.trim());
+    if (!isDisplayHeading(line, next)) continue;
+    const text = line.trim().replace(/^#{1,3}\s+/, "").replace(/^\d+[.)]\s+/, "");
+    if (text) items.push({ id: `s-${i}`, text });
+  }
+  if (items.length < 2) return null;
+  return {
+    stats: [stat("Sections", String(items.length)), stat("Words", String(words))],
+    groups: [{ title: "Sections", items: items.slice(0, 12) }],
+    aside: "Headings sit above the paragraphs they introduce.",
+  };
 }
 
 function recipeCard(body: string, words: number): ReadingCard {

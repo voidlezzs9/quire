@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { isFormId, type FormId } from "./forms.ts";
+import { tidyProse } from "./prose.ts";
 import { SAMPLES } from "./samples.ts";
 
 export type Note = {
@@ -231,7 +232,13 @@ export const useNotes = create<NotesState>((set, get) => ({
       if (raw) {
         const parsed = sanitize(JSON.parse(raw));
         if (parsed) {
-          set({ ...mergeWithSamples(parsed), ready: true });
+          const merged = mergeWithSamples(parsed);
+          merged.notes = merged.notes.map((note) => {
+            if (note.example || note.pinned === "code") return note;
+            const body = tidyProse(note.body);
+            return body === note.body ? note : { ...note, body };
+          });
+          set({ ...merged, ready: true });
           return;
         }
       }
