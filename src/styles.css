@@ -1,0 +1,386 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bone: #f3eee6;
+  --color-paper: #faf6f0;
+  --color-ink: #1c1917;
+  --color-ink-soft: #44403c;
+  --color-muted: #5c564e;
+  --color-line: #e4dcd0;
+  --color-copper: #9a3412;
+  --color-copper-soft: #f0d3c4;
+
+  --radius-sheet: 1.25rem;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background: var(--color-bone);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-copper);
+    outline-offset: 2px;
+  }
+}
+
+.kicker {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-copper);
+}
+
+.sheet {
+  --sheet-bg: var(--color-paper);
+  --sheet-fg: var(--color-ink);
+  --sheet-muted: var(--color-muted);
+  --sheet-mark: var(--color-copper);
+  --sheet-caret: var(--color-copper);
+  --sheet-font: var(--font-serif);
+  --sheet-title: var(--font-serif);
+  --sheet-size: 1.0625rem;
+  --sheet-leading: 1.65;
+  --sheet-style: normal;
+  --sheet-align: start;
+  background: var(--sheet-bg);
+  color: var(--sheet-fg);
+  border-radius: var(--radius-sheet);
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--color-ink) 8%, transparent),
+    0 28px 50px -36px color-mix(in oklab, var(--color-ink) 55%, transparent);
+  transition:
+    background-color 280ms ease,
+    color 280ms ease,
+    box-shadow 280ms ease;
+}
+
+.sheet[data-form="minutes"],
+.sheet[data-form="list"],
+.sheet[data-form="journey"],
+.sheet[data-form="study"] {
+  --sheet-font: var(--font-sans);
+  --sheet-title: var(--font-sans);
+  --sheet-leading: 1.6;
+}
+
+.sheet[data-form="list"] {
+  --sheet-leading: 1.55;
+}
+
+.sheet[data-form="sparks"] {
+  --sheet-font: var(--font-sans);
+  --sheet-title: var(--font-serif);
+  --sheet-leading: 1.7;
+}
+
+.sheet[data-form="recipe"] {
+  --sheet-font: var(--font-sans);
+  --sheet-title: var(--font-serif);
+}
+
+.sheet[data-form="journal"],
+.sheet[data-form="letter"],
+.sheet[data-form="story"] {
+  --sheet-font: var(--font-serif);
+  --sheet-title: var(--font-serif);
+  --sheet-leading: 1.75;
+}
+
+.sheet[data-form="story"] {
+  --sheet-size: 1.125rem;
+}
+
+.sheet[data-form="verse"] {
+  --sheet-font: var(--font-serif);
+  --sheet-title: var(--font-serif);
+  --sheet-style: italic;
+  --sheet-align: center;
+  --sheet-leading: 1.8;
+}
+
+.sheet[data-form="code"] {
+  --sheet-bg: var(--color-ink);
+  --sheet-fg: var(--color-paper);
+  --sheet-muted: color-mix(in oklab, var(--color-paper) 70%, var(--color-ink));
+  --sheet-mark: var(--color-copper-soft);
+  --sheet-caret: var(--color-paper);
+  --sheet-font: var(--font-mono);
+  --sheet-title: var(--font-mono);
+  --sheet-size: 1rem;
+  --sheet-leading: 1.65;
+  --sheet-style: normal;
+}
+
+.sheet-kicker {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sheet-mark);
+  text-align: var(--sheet-align);
+}
+
+.sheet[data-form="letter"] .sheet-kicker {
+  text-align: center;
+}
+
+.sheet-title {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  caret-color: var(--sheet-caret);
+  font-family: var(--sheet-title);
+  font-style: var(--sheet-style);
+  font-weight: 500;
+  font-size: clamp(1.65rem, 3vw, 2.15rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-align: var(--sheet-align);
+}
+
+.sheet[data-form="code"] .sheet-title {
+  font-weight: 500;
+  font-size: 1.35rem;
+  letter-spacing: 0;
+}
+
+.sheet-title::placeholder {
+  color: color-mix(in oklab, var(--sheet-fg) 40%, transparent);
+}
+
+.sheet-title:focus-visible,
+.editor textarea:focus-visible {
+  outline: none;
+}
+
+.sheet-rule {
+  height: 1px;
+  margin: 1.25rem 0 1.5rem;
+  border: 0;
+  background: color-mix(in oklab, var(--sheet-fg) 16%, transparent);
+}
+
+.sheet[data-form="verse"] .sheet-rule,
+.sheet[data-form="letter"] .sheet-rule {
+  width: 4.5rem;
+  margin-inline: auto;
+}
+
+.measure {
+  width: min(100%, 40rem);
+  margin-inline: auto;
+}
+
+.sheet[data-form="verse"] .measure,
+.sheet[data-form="letter"] .measure,
+.sheet[data-form="story"] .measure {
+  width: min(100%, 34rem);
+}
+
+.sheet[data-form="code"] .measure {
+  width: min(100%, 44rem);
+}
+
+.editor-frame {
+  min-width: 0;
+}
+
+.sheet[data-form="journal"] .editor-frame {
+  padding-left: 1.15rem;
+  box-shadow: inset 1px 0 0 color-mix(in oklab, var(--sheet-fg) 22%, transparent);
+}
+
+.sheet[data-form="journey"] .editor-frame {
+  padding-left: 1.15rem;
+  box-shadow: inset 2px 0 0 var(--color-copper);
+}
+
+.editor {
+  position: relative;
+  font-family: var(--sheet-font);
+  font-size: var(--sheet-size);
+  font-style: var(--sheet-style);
+  font-weight: 400;
+  line-height: var(--sheet-leading);
+  text-align: var(--sheet-align);
+}
+
+.editor pre,
+.editor textarea {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  tab-size: 2;
+}
+
+.editor pre {
+  min-height: 16rem;
+  color: inherit;
+}
+
+.editor pre.is-placeholder {
+  color: color-mix(in oklab, var(--sheet-fg) 45%, transparent);
+}
+
+.editor textarea {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  overflow: hidden;
+  color: transparent;
+  caret-color: var(--sheet-caret);
+  background: transparent;
+}
+
+.editor textarea::placeholder {
+  color: transparent;
+}
+
+.editor textarea::selection {
+  background: color-mix(in oklab, var(--color-copper) 38%, transparent);
+  color: transparent;
+}
+
+.mk-time,
+.mk-qty,
+.mk-h,
+.mk-key,
+.mk-result {
+  color: var(--sheet-mark);
+}
+
+.mk-time {
+  background: color-mix(in oklab, var(--sheet-mark) 16%, transparent);
+  border-radius: 0.2rem;
+}
+
+.mk-done {
+  color: color-mix(in oklab, var(--sheet-fg) 45%, transparent);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--sheet-mark) 75%, transparent);
+}
+
+.sheet-foot {
+  color: var(--sheet-muted);
+}
+
+.chips {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .chips {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+
+.listen-dot {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-right: 0.4rem;
+  border-radius: 999px;
+  background: var(--color-copper);
+  vertical-align: middle;
+}
+
+.stops {
+  margin-left: 0.3rem;
+  border-left: 1px solid var(--color-line);
+}
+
+.stop {
+  position: relative;
+  padding-bottom: 1rem;
+  padding-left: 1rem;
+}
+
+.stop::before {
+  content: "";
+  position: absolute;
+  top: 0.45rem;
+  left: -0.28rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--color-copper);
+}
+
+.reading-sheet {
+  max-height: 85dvh;
+}
+
+.tap {
+  transition: scale 150ms ease-out;
+}
+
+.tap:active:not(:disabled) {
+  scale: 0.96;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .tap,
+  .listen-dot {
+    transition: none;
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .listen-dot {
+    animation: quire-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes quire-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
