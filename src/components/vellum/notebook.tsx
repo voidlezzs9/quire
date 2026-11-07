@@ -1,7 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
-import { Check, Copy, Download, Menu, Pin, PinOff, Plus, Trash2, X } from "lucide-react";
+import { Check, Copy, Download, FolderOpen, Menu, Pin, PinOff, Plus, Trash2, X } from "lucide-react";
 import { classify, type Reading } from "@/lib/vellum/classify";
-import { exportChoices, saveExport } from "@/lib/vellum/export";
+import {
+  cancelled,
+  linkedFile,
+  loadLinkedFiles,
+  openDocument,
+  rememberFile,
+  saveToDocuments,
+} from "@/lib/vellum/documents";
+import { exportChoices, saveExport, type ExportFile } from "@/lib/vellum/export";
 import { extract } from "@/lib/vellum/extract";
 import { asPhrase, CHIP_IDS, FORM_META, type FormId } from "@/lib/vellum/forms";
 import { useNotes, type Note } from "@/lib/vellum/store";
@@ -40,6 +48,7 @@ export function Notebook() {
 
   useEffect(() => {
     hydrate();
+    void loadLinkedFiles();
   }, [hydrate]);
 
   useEffect(() => {
@@ -178,9 +187,11 @@ function SheetHeader({ onMenu, onNew }: { onMenu: () => void; onNew: () => void 
   const { note, reading, form, listening } = useScope();
   const update = useNotes((state) => state.update);
   const remove = useNotes((state) => state.remove);
+  const importNote = useNotes((state) => state.importNote);
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const confirmFor = useRef(note.id);
   const choices = useMemo(
     () => exportChoices(form, note.title, note.body, note.checked),
@@ -198,6 +209,54 @@ function SheetHeader({ onMenu, onNew }: { onMenu: () => void; onNew: () => void 
 
   function pin(next: FormId | null) {
     update(note.id, { pinned: next });
+  }
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "o") {
+        event.preventDefault();
+        void openFile();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [importNote]);
+
+  function flash(message: string) {
+    setNotice(message);
+    window.setTimeout(() => setNotice(null), 2400);
+  }
+
+  async function openFile() {
+    try {
+      const opened = await openDocument();
+      if (!opened) return;
+      const id = importNote(opened.title, opened.body);
+      if (opened.handle) rememberFile(id, opened.handle);
+      flash(opened.handle ? `Opened ${opened.handle.name}` : `Opened ${opened.title}`);
+    } catch (error) {
+      if (cancelled(error)) return;
+      flash(error instanceof Error ? error.message : "Could not open that file.");
+    }
+  }
+
+  async function place(file: ExportFile) {
+    setSaving(false);
+    const existing = linkedFile(note.id);
+    const same = existing !== null && existing.name === file.name;
+    try {
+      const saved = await saveToDocuments(file, same ? existing : null);
+      if (saved === "download") {
+        flash("Saved to Downloads. Chrome or Edge can place it in Documents.");
+        return;
+      }
+      if (!file.name.endsWith(".pdf") || existing?.name === saved.name) rememberFile(note.id, saved);
+      flash(`Saved ${saved.name}`);
+    } catch (error) {
+      if (cancelled(error)) return;
+      saveExport(file);
+      flash("Saved to Downloads. Chrome or Edge can place it in Documents.");
+    }
   }
 
   function copy() {
@@ -234,6 +293,10 @@ function SheetHeader({ onMenu, onNew }: { onMenu: () => void; onNew: () => void 
                 {note.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
                 <span className="hidden sm:inline">{note.pinned ? "Release" : "Hold"}</span>
               </TextButton>
+              <TextButton label="Open a document" onClick={() => void openFile()}>
+                <FolderOpen className="size-4" />
+                <span className="hidden sm:inline">Open</span>
+              </TextButton>
               <TextButton label="Copy note" onClick={copy}>
                 {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
                 <span className="hidden sm:inline">{copied ? "Copied" : "Copy"}</span>
@@ -251,10 +314,7 @@ function SheetHeader({ onMenu, onNew }: { onMenu: () => void; onNew: () => void 
                         type="button"
                         role="menuitem"
                         className="tap flex min-h-11 w-full items-center justify-between rounded-xl px-3 text-left text-sm"
-                        onClick={() => {
-                          saveExport(choice.file);
-                          setSaving(false);
-                        }}
+                        onClick={() => void place(choice.file)}
                       >
                         <span>{choice.label}</span>
                         <span className="text-muted">{choice.ext}</span>
@@ -274,9 +334,13 @@ function SheetHeader({ onMenu, onNew }: { onMenu: () => void; onNew: () => void 
         </div>
       </div>
       <p className="px-4 pt-1 text-sm leading-6 md:px-6" aria-live="polite">
-        {listening ? <span className="listen-dot" aria-hidden="true" /> : null}
-        {listening ? (
-          <span>Listening. Still set as {phrase}.</span>
+        {notice ? (
+          <span>{notice}</span>
+        ) : listening ? (
+          <span>
+            <span className="listen-dot" aria-hidden="true" />
+            Listening. Still set as {phrase}.
+          </span>
         ) : (
           <>
             <span className="text-copper">{note.pinned ? "Held" : "Reading"}</span>

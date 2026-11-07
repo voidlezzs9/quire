@@ -76,7 +76,9 @@ Only the line you are on is settled. The rest of the note is left alone.
 
 ## Save the note as the file you meant
 
-**Save** builds the file in the browser and downloads it. Every note can become text or a PDF. Some shapes add another file.
+**Open** asks for a document, starting in Documents. Text, Markdown, CSV, Python, SQL, JavaScript, TypeScript, and Jupyter notebooks become a note. Saving that note again writes back to the same file.
+
+**Save** asks where to put the file, again starting in Documents, in Chrome and Edge. Every note can become text or a PDF. Some shapes add another file. If the browser cannot use that folder, the file goes to Downloads instead.
 
 | You are writing | Save also offers |
 | --- | --- |

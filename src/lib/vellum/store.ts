@@ -21,6 +21,7 @@ type NotesState = {
   setQuery: (query: string) => void;
   select: (id: string) => void;
   create: () => void;
+  importNote: (title: string, body: string) => string;
   update: (id: string, patch: Partial<Pick<Note, "title" | "body" | "pinned" | "checked">>) => void;
   toggleCheck: (id: string, key: string) => void;
   remove: (id: string) => void;
@@ -122,6 +123,21 @@ export const useNotes = create<NotesState>((set, get) => ({
       updatedAt: now,
     };
     set((state) => ({ notes: [note, ...state.notes], activeId: note.id }));
+  },
+  importNote: (title, body) => {
+    const now = Date.now();
+    const note: Note = {
+      id: crypto.randomUUID(),
+      title,
+      body,
+      pinned: null,
+      checked: [],
+      example: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    set((state) => ({ notes: [note, ...state.notes], activeId: note.id }));
+    return note.id;
   },
   update: (id, patch) => {
     set((state) => ({
