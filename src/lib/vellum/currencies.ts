@@ -312,16 +312,29 @@ function isLetters(symbol: string): boolean {
 
 export type MoneyEdit = { start: number; end: number; text: string };
 
-export function rewriteMoney(line: string): { text: string; edits: MoneyEdit[] } {
+function stillTyping(line: string, start: number, end: number, caret: number | undefined): boolean {
+  if (caret == null || caret < start || caret > end) return false;
+  if (caret < end) return true;
+  const word = line.slice(start, end).match(/[A-Za-z]+$/)?.[0]?.toLowerCase() ?? "";
+  if (!word) return false;
+  for (const name of byName.keys()) {
+    if (name.startsWith(word) && name.length > word.length) return true;
+  }
+  return false;
+}
+
+export function rewriteMoney(line: string, caret?: number): { text: string; edits: MoneyEdit[] } {
   WORD_RE.lastIndex = 0;
   const edits: MoneyEdit[] = [];
   let match: RegExpExecArray | null;
   while ((match = WORD_RE.exec(line))) {
     const index = match.index;
+    const end = index + match[0].length;
+    if (stillTyping(line, index, end, caret)) continue;
     if (match[7]) {
       const currency = byName.get(match[7].toLowerCase());
       if (!currency) continue;
-      edits.push({ start: index, end: index + match[7].length, text: currency.symbol });
+      edits.push({ start: index, end, text: currency.symbol });
       continue;
     }
     if (match[3]) {
@@ -329,11 +342,7 @@ export function rewriteMoney(line: string): { text: string; edits: MoneyEdit[] }
       if (!currency) continue;
       const num = match[1] ?? "";
       const space = match[2] ?? " ";
-      edits.push({
-        start: index,
-        end: index + match[0].length,
-        text: `${num}${space}${currency.symbol}`,
-      });
+      edits.push({ start: index, end, text: `${num}${space}${currency.symbol}` });
       continue;
     }
     if (match[4]) {
@@ -342,7 +351,7 @@ export function rewriteMoney(line: string): { text: string; edits: MoneyEdit[] }
       const space = match[5] ?? " ";
       const num = match[6] ?? "";
       const text = isLetters(currency.symbol) ? `${currency.symbol}${space}${num}` : `${currency.symbol}${num}`;
-      edits.push({ start: index, end: index + match[0].length, text });
+      edits.push({ start: index, end, text });
     }
   }
   if (edits.length === 0) return { text: line, edits };

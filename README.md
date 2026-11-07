@@ -11,6 +11,8 @@ The reading happens in the browser, on each keystroke. Quire does not send the n
 - Start a blank note and keep typing. The shape follows the writing until you hold it.
 - Search the notebook, copy a note, or delete it.
 - Tick items on a list. The side card counts what is done and what is left.
+- Finish a sum, including one written with euros, yen, rupees, pounds, or a code like `JPY`.
+- Drop a sticker or a kaomoji in at the cursor.
 - Save the note as the file you actually wanted: text, PDF, a spreadsheet, or source code.
 - Open the sample notebook and edit any page. Once you change it, it becomes yours.
 
@@ -63,6 +65,8 @@ log(1000) = 3
 
 The result is marked on the page. If the number after the equals sign is wrong, Quire replaces it. `2 + 2 = 9` becomes `2 + 2 = 4`. A line of prose stays as you typed it.
 
+Words the line is using are marked in that same color: `sin`, `sqrt`, `log`, and code words such as `def`, `return`, `print`, and `SELECT`.
+
 Supported writing:
 
 - `+` `-` `*` `/` `^`, and parentheses
@@ -73,6 +77,42 @@ Supported writing:
 Only the line you are on is settled. The rest of the note is left alone.
 
 **Workshop sums** in the sample notebook is a study page built around these lines. **Weeknight chili** ends with a scale line, `2 * 400 = 800`, so a recipe can carry a sum without turning into a calculator.
+
+## Money
+
+A currency name or code beside a number becomes its sign, and a sum on that line keeps the sign.
+
+```text
+12 euros + 3 euros =
+500 yen
+Rs 500 + Rs 20 =
+20 pounds
+JPY 800
+```
+
+become
+
+```text
+12 € + 3 € = 15 €
+500 ¥
+Rs 500 + Rs 20 = Rs 520
+20 £
+¥800
+```
+
+`Rs` stays `Rs`. Names that mean the currency on their own, such as yen, euro, rupee, baht, and naira, become the sign even with no number. Everyday words wait for a number, so `I won` and `pound the dough` stay, and `500 won` becomes `500 ₩`. Codes that are also ordinary words, such as `try`, `all`, and `cup`, convert when typed in capitals: `TRY 40` becomes `₺40`.
+
+One sign on the line is enough for the result to wear it. Two different currencies finish as a plain number.
+
+![Pocket change, with euros, yen, rupees, pounds, and a yen code settled into a list](docs/images/currencies.png)
+
+## Stickers
+
+**Stickers**, under the writing, inserts a mark at the cursor.
+
+Faces, hands, hearts, food, sky, animals, and a short set of ordinary marks. Joy, shrug, love, cry, greet, and flip are kaomoji.
+
+![Stickers open on Pocket change, faces in front and the kaomoji packs beside them](docs/images/stickers.png)
 
 ## Save the note as the file you meant
 
@@ -89,7 +129,7 @@ Only the line you are on is settled. The rest of the note is left alone.
 
 Python cells split on `# %%`. A line `# %% [markdown]` becomes a markdown cell. The rest become code cells.
 
-The PDF is a plain text document in Helvetica. Letters outside basic English are folded so the file still opens. For a note that depends on accents or other scripts, use **Text**.
+The PDF is a plain text document in Helvetica. Currency signs, emoji, and letters outside basic English are folded so the file still opens. For a note that depends on them, use **Text**.
 
 ![Save on cells.py, offering text, PDF, a Python file, and a notebook](docs/images/save-python.png)
 

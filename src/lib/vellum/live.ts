@@ -157,8 +157,8 @@ function isCalculable(expr: string): boolean {
 const NUMBER = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i;
 
 /** Currency names and codes become their signs. `500 yen` becomes `500 ¥`. */
-export function spellMoney(line: string): string {
-  return rewriteMoney(line).text;
+export function spellMoney(line: string, caret?: number): string {
+  return rewriteMoney(line, caret).text;
 }
 
 /**
@@ -167,8 +167,8 @@ export function spellMoney(line: string): string {
  * `500 yen` becomes `500 ¥`. `$10 + $5 =` becomes `$10 + $5 = $15`.
  * `12 euros` becomes `12 €`. `500 JPY` becomes `500 ¥`.
  */
-export function settleLine(line: string): string {
-  const spelled = spellMoney(line);
+export function settleLine(line: string, caret?: number): string {
+  const spelled = spellMoney(line, caret);
   const match = spelled.match(/^(.*?)=([^\n]*)$/);
   if (!match) return spelled;
   const left = match[1] ?? "";
@@ -193,14 +193,25 @@ export function settleLine(line: string): string {
 }
 
 export function settleBody(text: string, caret: number): { text: string; caret: number } {
-  const safe = Math.max(0, Math.min(caret, text.length));
+  let safe = Math.max(0, Math.min(caret, text.length));
+  const lineStart = text.lastIndexOf("\n", Math.max(0, safe - 1)) + 1;
+  if (safe === lineStart && lineStart > 0) {
+    const prevEnd = lineStart - 1;
+    const prevStart = text.lastIndexOf("\n", Math.max(0, prevEnd - 1)) + 1;
+    const prev = text.slice(prevStart, prevEnd);
+    const settledPrev = settleLine(prev);
+    if (settledPrev !== prev) {
+      text = text.slice(0, prevStart) + settledPrev + text.slice(prevEnd);
+      safe += settledPrev.length - prev.length;
+    }
+  }
   const start = text.lastIndexOf("\n", Math.max(0, safe - 1)) + 1;
   const breakAt = text.indexOf("\n", safe);
   const end = breakAt === -1 ? text.length : breakAt;
   const line = text.slice(start, end);
   const local = safe - start;
   const contentEnd = line.trimEnd().length;
-  const settled = settleLine(line);
+  const settled = settleLine(line, local);
   if (settled === line) return { text, caret: safe };
   const rhs = line.slice(line.indexOf("=") + 1).trim();
   const editingMiddle = local < contentEnd && rhs === "" && settled.includes("=");
@@ -212,7 +223,7 @@ export function settleBody(text: string, caret: number): { text: string; caret: 
 
 function mapCaret(before: string, after: string, caret: number): number {
   if (caret >= before.trimEnd().length) return after.length;
-  const { edits } = rewriteMoney(before);
+  const { edits } = rewriteMoney(before, caret);
   let shift = 0;
   for (const edit of edits) {
     const delta = edit.end - edit.start - edit.text.length;

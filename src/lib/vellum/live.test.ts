@@ -31,6 +31,15 @@ test("a currency sum keeps its symbol", () => {
   assert.equal(settleLine("10 dollars + 5 dollars ="), "10 $ + 5 $ = 15 $");
 });
 
+test("a plural waits until the word is finished", () => {
+  assert.equal(settleLine("12 euro", "12 euro".length), "12 euro");
+  assert.equal(settleLine("12 euros", "12 euros".length), "12 €");
+  assert.equal(settleLine("20 pound", "20 pound".length), "20 pound");
+  assert.equal(settleLine("20 pounds"), "20 £");
+  const left = settleBody("12 euro\n", "12 euro\n".length);
+  assert.equal(left.text, "12 €\n");
+});
+
 test("currency names and codes become their signs", () => {
   assert.equal(settleLine("12 euros"), "12 €");
   assert.equal(settleLine("euro 12"), "€12");
