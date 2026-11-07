@@ -27,6 +27,22 @@ test("yen becomes the yen symbol", () => {
 test("a currency sum keeps its symbol", () => {
   assert.equal(settleLine("$10 + $5 ="), "$10 + $5 = $15");
   assert.equal(settleLine("Rs 500 + Rs 20 ="), "Rs 500 + Rs 20 = Rs 520");
+  assert.equal(settleLine("USD 10 + USD 5 ="), "$10 + $5 = $15");
+  assert.equal(settleLine("10 dollars + 5 dollars ="), "10 $ + 5 $ = 15 $");
+});
+
+test("currency names and codes become their signs", () => {
+  assert.equal(settleLine("12 euros"), "12 €");
+  assert.equal(settleLine("euro 12"), "€12");
+  assert.equal(settleLine("500 JPY"), "500 ¥");
+  assert.equal(settleLine("20 inr"), "20 ₹");
+  assert.equal(settleLine("500 pounds"), "500 £");
+  assert.equal(settleLine("TRY 40"), "₺40");
+  assert.equal(settleLine("500 won"), "500 ₩");
+  assert.equal(settleLine("try 500"), "try 500");
+  assert.equal(settleLine("I won the race"), "I won the race");
+  assert.equal(settleLine("pound the dough"), "pound the dough");
+  assert.equal(settleLine("the euro zone"), "the € zone");
 });
 
 test("only the line at the caret is settled", () => {

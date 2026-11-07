@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Check, Copy, Download, FolderOpen, Menu, Pin, PinOff, Plus, Trash2, X } from "lucide-react";
 import { classify, type Reading } from "@/lib/vellum/classify";
 import {
@@ -15,6 +15,7 @@ import { asPhrase, CHIP_IDS, FORM_META, type FormId } from "@/lib/vellum/forms";
 import { useNotes, type Note } from "@/lib/vellum/store";
 import { wordCount } from "@/lib/vellum/text";
 import { ProseEditor } from "@/components/vellum/editor";
+import { Stickers } from "@/components/vellum/stickers";
 import { Found, foundSummary } from "@/components/vellum/found";
 import { Rail } from "@/components/vellum/rail";
 
@@ -405,6 +406,25 @@ function Page({
   const empty = !note.title.trim() && !note.body.trim();
   const samples = notes.filter((item) => item.example).slice(0, 4);
   const words = wordCount(`${note.title}\n${note.body}`);
+  const pendingCaret = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    const pos = pendingCaret.current;
+    if (pos == null) return;
+    pendingCaret.current = null;
+    const area = bodyRef.current;
+    if (!area) return;
+    area.focus();
+    area.setSelectionRange(pos, pos);
+  }, [note.body, bodyRef]);
+
+  function insertGlyph(glyph: string) {
+    const area = bodyRef.current;
+    const start = area?.selectionStart ?? note.body.length;
+    const end = area?.selectionEnd ?? start;
+    pendingCaret.current = start + glyph.length;
+    update(note.id, { body: note.body.slice(0, start) + glyph + note.body.slice(end) });
+  }
 
   return (
     <div className="px-4 py-5 md:px-8 md:py-8">
@@ -453,7 +473,8 @@ function Page({
               </div>
             </div>
           ) : null}
-          <p className="sheet-foot mt-8 flex items-center justify-between text-sm tabular-nums">
+          <Stickers onInsert={insertGlyph} />
+          <p className="sheet-foot mt-4 flex items-center justify-between text-sm tabular-nums">
             <span>
               {words} {words === 1 ? "word" : "words"}
             </span>

@@ -1,3 +1,4 @@
+import { MONEY_AMOUNT } from "./currencies.ts";
 import type { FormId } from "./forms.ts";
 import { lineKey } from "./text.ts";
 
@@ -44,10 +45,8 @@ function markWords(escaped: string): string {
 }
 
 function markMoney(escaped: string): string {
-  return escaped.replace(
-    /(?:[$€£¥₹]\s?\d[\d,]*(?:\.\d+)?)|(?:\b\d[\d,]*(?:\.\d+)?\s?[$€£¥₹])|(?:\b(?:Rs\.?|INR|USD|EUR|GBP)\s?\d[\d,]*(?:\.\d+)?)/gi,
-    (match) => `<span class="mk-money">${match}</span>`,
-  );
+  MONEY_AMOUNT.lastIndex = 0;
+  return escaped.replace(MONEY_AMOUNT, (match) => `<span class="mk-money">${match}</span>`);
 }
 
 function markResult(escaped: string, raw: string): string {

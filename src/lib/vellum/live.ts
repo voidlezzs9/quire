@@ -1,3 +1,5 @@
+import { formatMoney, moneyMark, rewriteMoney, stripMoney, wearsMoney } from "./currencies.ts";
+
 type Tok =
   | { t: "n"; v: number }
   | { t: "op"; v: string }
@@ -154,30 +156,16 @@ function isCalculable(expr: string): boolean {
 
 const NUMBER = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i;
 
-/** The word yen becomes ¥. Rs, $, and the other symbols are left as typed. */
+/** Currency names and codes become their signs. `500 yen` becomes `500 ¥`. */
 export function spellMoney(line: string): string {
-  return line.replace(/\byen\b/gi, "¥");
-}
-
-function stripMoney(expr: string): string {
-  return expr.replace(/[$€£¥₹]/g, "").replace(/\bRs\.?\s*/gi, "");
-}
-
-/** One currency repeated on the line, so the result can wear it too. */
-function moneyMark(expr: string): string {
-  const found = new Set<string>();
-  for (const match of expr.matchAll(/[$€£¥₹]|\bRs\.?/gi)) {
-    const token = match[0].toLowerCase().startsWith("rs") ? "Rs " : match[0];
-    found.add(token);
-  }
-  if (found.size !== 1) return "";
-  return [...found][0] ?? "";
+  return rewriteMoney(line).text;
 }
 
 /**
  * If this line is a live expression, finish it.
  * `1 + 2 =` becomes `1 + 2 = 3`. Prose that happens to contain "=" stays put.
  * `500 yen` becomes `500 ¥`. `$10 + $5 =` becomes `$10 + $5 = $15`.
+ * `12 euros` becomes `12 €`. `500 JPY` becomes `500 ¥`.
  */
 export function settleLine(line: string): string {
   const spelled = spellMoney(line);
@@ -196,11 +184,11 @@ export function settleLine(line: string): string {
   } catch {
     return spelled;
   }
-  const symbol = moneyMark(expr);
-  const shown = symbol ? `${symbol}${value}` : value;
-  if (rhsBare === value && (symbol === "" || rhs.replace(/\s/g, "").startsWith(symbol.replace(/\s/g, "")))) {
-    return spelled;
-  }
+  const mark = moneyMark(expr);
+  const shown = mark ? formatMoney(mark.symbol, mark.place, value) : value;
+  const already =
+    rhsBare === value && (mark === null || wearsMoney(rhs, mark.symbol, mark.place, value));
+  if (already) return spelled;
   return `${left.trimEnd()} = ${shown}`;
 }
 
@@ -224,10 +212,12 @@ export function settleBody(text: string, caret: number): { text: string; caret: 
 
 function mapCaret(before: string, after: string, caret: number): number {
   if (caret >= before.trimEnd().length) return after.length;
+  const { edits } = rewriteMoney(before);
   let shift = 0;
-  for (const match of before.matchAll(/\byen\b/gi)) {
-    const index = match.index ?? 0;
-    if (index + match[0].length <= caret) shift += match[0].length - 1;
+  for (const edit of edits) {
+    const delta = edit.end - edit.start - edit.text.length;
+    if (edit.end <= caret) shift += delta;
+    else if (edit.start < caret) return Math.min(edit.start - shift + edit.text.length, after.length);
     else break;
   }
   return Math.min(Math.max(0, caret - shift), after.length);
