@@ -114,21 +114,6 @@ A new Quire opens with pages already in shape. Editing a sample makes a copy tha
 
 ## Where the notes live
 
-Notes stay in this browser, as plain JSON under the key `quire.notes.v1`. They are not in an account, and they are not copied to a server when you type. Clearing the site’s data, or opening Quire in another browser, starts a fresh notebook.
+Notes stay in the browser you wrote them in. They are not in an account, and they are not copied to a server while you type. Clearing the site’s data, or opening Quire in another browser, starts a fresh notebook.
 
-That is safer than sending every keystroke to an API. It is not encryption, and it does not stop a program that can already read an open page. **Save** is a download onto the machine you are using.
-
-## Run it
-
-```bash
-npm install
-npm run dev
-```
-
-The production build is:
-
-```bash
-npm run build
-```
-
-No database variable is required. Authentication is off. On Vercel, leave the build as `npm run build`, leave the output directory empty, and add no environment variables. The install command is already in `vercel.json`.
+That is safer than sending every keystroke to an API. It is not encryption, and it does not stop a program that can already read an open page. **Save** downloads a file onto the machine you are using.
