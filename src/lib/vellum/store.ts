@@ -13,9 +13,16 @@ export type Note = {
   updatedAt: number;
 };
 
-type NotesState = {
+type NotebookSave = {
   notes: Note[];
   activeId: string;
+  /** Sample ids the user removed. Those pages are not seeded again. */
+  dismissed: string[];
+  /** Sample ids this browser has already been shown, so a later sample can still arrive. */
+  introduced: string[];
+};
+
+type NotesState = NotebookSave & {
   query: string;
   ready: boolean;
   setQuery: (query: string) => void;
@@ -43,38 +50,49 @@ export function seedNotes(): Note[] {
   }));
 }
 
-/** Refresh untouched samples and add new ones. Edited or handwritten notes stay. */
-export function mergeWithSamples(stored: { notes: Note[]; activeId: string }): {
-  notes: Note[];
-  activeId: string;
-} {
+/** Refresh untouched samples and add ones this browser has not met. Dismissed samples stay gone. */
+export function mergeWithSamples(stored: NotebookSave): NotebookSave {
   const fresh = seedNotes();
   const freshIds = new Set(fresh.map((note) => note.id));
+  const dismissed = new Set(stored.dismissed);
   const byId = new Map(stored.notes.map((note) => [note.id, note]));
   const userNotes = stored.notes.filter((note) => !freshIds.has(note.id));
-  const samples = fresh.map((sample) => {
-    const existing = byId.get(sample.id);
-    if (!existing || existing.example) {
-      const checked = existing?.checked.length ? existing.checked : sample.checked;
-      return { ...sample, checked };
-    }
-    return existing;
-  });
+  const samples = fresh
+    .filter((sample) => !dismissed.has(sample.id))
+    .map((sample) => {
+      const existing = byId.get(sample.id);
+      if (!existing || existing.example) {
+        const checked = existing?.checked.length ? existing.checked : sample.checked;
+        return { ...sample, checked };
+      }
+      return existing;
+    });
   const notes = [...userNotes, ...samples];
   const activeId = notes.some((note) => note.id === stored.activeId)
     ? stored.activeId
     : (notes[0]?.id ?? "");
-  return { notes, activeId };
+  const introduced = [...new Set([...stored.introduced, ...fresh.map((sample) => sample.id)])];
+  return { notes, activeId, dismissed: stored.dismissed, introduced };
 }
 
-function fallback(): { notes: Note[]; activeId: string } {
+function fallback(): NotebookSave {
   const notes = seedNotes();
-  return { notes, activeId: notes[0]?.id ?? "" };
+  return {
+    notes,
+    activeId: notes[0]?.id ?? "",
+    dismissed: [],
+    introduced: notes.map((note) => note.id),
+  };
 }
 
-function sanitize(value: unknown): { notes: Note[]; activeId: string } | null {
+function idList(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  return value.filter((entry) => typeof entry === "string");
+}
+
+function sanitize(value: unknown): NotebookSave | null {
   if (!value || typeof value !== "object") return null;
-  const record = value as { notes?: unknown; activeId?: unknown };
+  const record = value as { notes?: unknown; activeId?: unknown; dismissed?: unknown; introduced?: unknown };
   if (!Array.isArray(record.notes)) return null;
   const notes: Note[] = [];
   for (const item of record.notes) {
@@ -98,7 +116,17 @@ function sanitize(value: unknown): { notes: Note[]; activeId: string } | null {
   const activeId = typeof record.activeId === "string" && notes.some((note) => note.id === record.activeId)
     ? record.activeId
     : notes[0].id;
-  return { notes, activeId };
+  const known = new Set(seedNotes().map((note) => note.id));
+  const introduced = idList(record.introduced);
+  const dismissed = idList(record.dismissed);
+  return {
+    notes,
+    activeId,
+    introduced: introduced ?? [...known],
+    dismissed:
+      dismissed ??
+      [...known].filter((id) => !notes.some((note) => note.id === id)),
+  };
 }
 
 const initial = fallback();
@@ -106,6 +134,8 @@ const initial = fallback();
 export const useNotes = create<NotesState>((set, get) => ({
   notes: initial.notes,
   activeId: initial.activeId,
+  dismissed: initial.dismissed,
+  introduced: initial.introduced,
   query: "",
   ready: false,
   setQuery: (query) => set({ query }),
@@ -166,11 +196,16 @@ export const useNotes = create<NotesState>((set, get) => ({
   },
   remove: (id) => {
     set((state) => {
+      const removed = state.notes.find((note) => note.id === id);
+      const dismissed =
+        removed?.id.startsWith("sample-") && !state.dismissed.includes(removed.id)
+          ? [...state.dismissed, removed.id]
+          : state.dismissed;
       const notes = state.notes.filter((note) => note.id !== id);
       if (!notes.length) {
         const blank = fallback();
         const fresh = blank.notes[0];
-        if (!fresh) return { notes: [], activeId: "" };
+        if (!fresh) return { notes: [], activeId: "", dismissed, introduced: state.introduced };
         const now = Date.now();
         const note: Note = {
           ...fresh,
@@ -183,10 +218,10 @@ export const useNotes = create<NotesState>((set, get) => ({
           createdAt: now,
           updatedAt: now,
         };
-        return { notes: [note], activeId: note.id };
+        return { notes: [note], activeId: note.id, dismissed, introduced: state.introduced };
       }
       const activeId = state.activeId === id ? notes[0].id : state.activeId;
-      return { notes, activeId };
+      return { notes, activeId, dismissed, introduced: state.introduced };
     });
   },
   hydrate: () => {
@@ -205,8 +240,8 @@ export const useNotes = create<NotesState>((set, get) => ({
     }
     set({ ready: true });
     try {
-      const { notes, activeId } = get();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ notes, activeId }));
+      const { notes, activeId, dismissed, introduced } = get();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ notes, activeId, dismissed, introduced }));
     } catch {
       /* private mode */
     }
@@ -216,11 +251,23 @@ export const useNotes = create<NotesState>((set, get) => ({
 if (typeof window !== "undefined") {
   useNotes.subscribe((state, previous) => {
     if (!state.ready) return;
-    if (state.notes === previous.notes && state.activeId === previous.activeId) return;
+    if (
+      state.notes === previous.notes &&
+      state.activeId === previous.activeId &&
+      state.dismissed === previous.dismissed &&
+      state.introduced === previous.introduced
+    ) {
+      return;
+    }
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ notes: state.notes, activeId: state.activeId }),
+        JSON.stringify({
+          notes: state.notes,
+          activeId: state.activeId,
+          dismissed: state.dismissed,
+          introduced: state.introduced,
+        }),
       );
     } catch {
       /* ignore quota */

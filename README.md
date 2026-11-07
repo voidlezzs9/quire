@@ -95,7 +95,7 @@ The PDF is a plain text document in Helvetica. Letters outside basic English are
 
 ## Sample notebook
 
-A new Quire opens with pages already in shape. Editing a sample makes a copy that is yours; the sample flag comes off. Samples you have not edited pick up newer examples the next time the page loads. Notes you wrote yourself stay put.
+A new Quire opens with pages already in shape. Editing a sample makes that page yours. Deleting a sample keeps it deleted. A sample added in a later version can still show up once. Notes you wrote yourself stay put.
 
 | Sample | Shape | What it is for |
 | --- | --- | --- |
