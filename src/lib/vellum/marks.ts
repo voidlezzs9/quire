@@ -5,9 +5,9 @@ import { lineKey } from "./text.ts";
 
 function esc(value: string): string {
   return value
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function markInline(escaped: string): string {
