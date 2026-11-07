@@ -28,7 +28,7 @@ export const FORM_META: Record<FormId, FormMeta> = {
   plain: {
     label: "Page",
     kicker: "Note",
-    reason: "Still listening.",
+    reason: "No shape yet.",
     placeholder:
       "Start anywhere. A list, a letter, a recipe, a few lines of verse — the page will catch on.",
   },

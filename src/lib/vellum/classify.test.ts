@@ -24,6 +24,11 @@ test("Dear someone flips early", () => {
   assert.equal(reading.form, "letter");
 });
 
+test("four grocery lines become a list", () => {
+  const reading = classify("Hello world\ncarrot\ncucumber\ntomato\npeanuts");
+  assert.equal(reading.form, "list", JSON.stringify(reading.scores));
+});
+
 test("Hello world with a print is code", () => {
   const reading = classify('Hello world\nprint("Hello World!")');
   assert.equal(reading.form, "code", JSON.stringify(reading.scores));

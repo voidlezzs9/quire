@@ -148,6 +148,8 @@ export function classify(text: string): Reading {
       (shortRatio > 0.72 ? 3.4 : shortRatio > 0.55 ? 1.4 : 0);
     if (bullets / n > 0.55 && n >= 4) scores.list += 2.6;
     if (periods <= 1 && shortRatio > 0.7 && n >= 4) scores.list += 1.8;
+    const brief = filled.filter((line) => line.split(/\s+/).length <= 2).length;
+    if (brief / n >= 0.6 && n >= 4 && periods <= 1) scores.list += 2.6;
   }
 
   if (n >= 4) {
