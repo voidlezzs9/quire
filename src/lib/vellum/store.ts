@@ -35,11 +35,35 @@ export function seedNotes(): Note[] {
     title: sample.title,
     body: sample.body,
     pinned: null,
-    checked: [],
+    checked: sample.checked ?? [],
     example: true,
     createdAt: sample.updatedAt,
     updatedAt: sample.updatedAt,
   }));
+}
+
+/** Refresh untouched samples and add new ones. Edited or handwritten notes stay. */
+export function mergeWithSamples(stored: { notes: Note[]; activeId: string }): {
+  notes: Note[];
+  activeId: string;
+} {
+  const fresh = seedNotes();
+  const freshIds = new Set(fresh.map((note) => note.id));
+  const byId = new Map(stored.notes.map((note) => [note.id, note]));
+  const userNotes = stored.notes.filter((note) => !freshIds.has(note.id));
+  const samples = fresh.map((sample) => {
+    const existing = byId.get(sample.id);
+    if (!existing || existing.example) {
+      const checked = existing?.checked.length ? existing.checked : sample.checked;
+      return { ...sample, checked };
+    }
+    return existing;
+  });
+  const notes = [...userNotes, ...samples];
+  const activeId = notes.some((note) => note.id === stored.activeId)
+    ? stored.activeId
+    : (notes[0]?.id ?? "");
+  return { notes, activeId };
 }
 
 function fallback(): { notes: Note[]; activeId: string } {
@@ -156,7 +180,7 @@ export const useNotes = create<NotesState>((set, get) => ({
       if (raw) {
         const parsed = sanitize(JSON.parse(raw));
         if (parsed) {
-          set({ ...parsed, ready: true });
+          set({ ...mergeWithSamples(parsed), ready: true });
           return;
         }
       }

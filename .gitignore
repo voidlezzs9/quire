@@ -10,3 +10,5 @@ dist/
 .grok/skills/
 .grok/preview.log
 .grok/references/
+
+.vercel

@@ -7,11 +7,69 @@ export type Sample = {
   expect: FormId;
   /** Fixed so server and client render the same notebook. */
   updatedAt: number;
+  checked?: string[];
 };
 
 const day = (iso: string) => Date.parse(iso);
 
 export const SAMPLES: Sample[] = [
+  {
+    key: "sums",
+    expect: "study",
+    updatedAt: day("2026-04-02T18:00:00Z"),
+    title: "Workshop sums",
+    body: `Tip: eighteen percent of a forty-eight dollar bill, figured before anyone reaches for a phone.
+
+48 * 0.18 = 8.64
+
+Sine: the height of a thirty-degree angle, the way a workshop measures it, in degrees.
+
+sin(30) = 0.5
+
+Diagonal: corner to corner across a room that is three by four.
+
+sqrt(3^2 + 4^2) = 5
+
+Logarithm: how many tens are hiding inside a thousand.
+
+log(1000) = 3
+
+Formula: a line finishes itself only when it is actually an expression. A sentence with an equals sign is left alone.`,
+  },
+  {
+    key: "cells",
+    expect: "code",
+    updatedAt: day("2026-04-01T11:20:00Z"),
+    title: "cells.py",
+    body: `# %% [markdown]
+# Split a starter into two jars and print each share.
+
+# %%
+import math
+
+def split(grams, jars=2):
+    """Return the grams that belong in each jar."""
+    if jars < 1:
+        return grams
+    return math.floor(grams / jars)
+
+class Jar:
+    def __init__(self, grams):
+        self.grams = grams
+
+print(split(200))`,
+  },
+  {
+    key: "orders",
+    expect: "code",
+    updatedAt: day("2026-03-31T09:40:00Z"),
+    title: "open-orders.sql",
+    body: `SELECT id, table_no, total, opened_at FROM orders WHERE status = 'open' ORDER BY total DESC;
+
+SELECT id, name, party_size FROM guests WHERE seated = 0 ORDER BY name;
+
+INSERT INTO orders (table_no, total, status) VALUES (4, 48, 'open');`,
+  },
   {
     key: "chili",
     expect: "recipe",
@@ -31,7 +89,11 @@ Method
 1. Warm the oil in a skillet and soften the onion, about 6 minutes.
 2. Stir in the garlic and spices for 1 minute, until the kitchen smells right.
 3. Add the tomatoes and beans. Simmer 25 minutes.
-4. Season, then eat it over rice with whatever herbs are still alive.`,
+4. Season, then eat it over rice with whatever herbs are still alive.
+
+Scale
+Friends staying over means twice the tomatoes.
+2 * 400 = 800`,
   },
   {
     key: "sync",
@@ -108,6 +170,7 @@ Sam`,
     expect: "list",
     updatedAt: day("2026-03-12T08:40:00Z"),
     title: "Market run",
+    checked: ["sourdough"],
     body: `- sourdough
 - eggs
 - spinach
