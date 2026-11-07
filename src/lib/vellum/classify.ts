@@ -65,16 +65,25 @@ export function classify(text: string): Reading {
 
   const codeKw = tally(
     raw,
-    /\b(function|const|let|var|import|export|return|class|def|async|await|interface|elif|lambda|SELECT|INSERT)\b/,
+    /\b(function|const|let|var|import|export|return|class|def|async|await|interface|elif|lambda|SELECT|INSERT|print|console)\b/,
   );
   const codePunct = tally(raw, /[{};]|=>|<\/|\/>|::/);
   const fences = tally(raw, /```/);
   const indented = filled.filter((line) => /^\s{2,}\S/.test(line) || line.startsWith("\t")).length;
+  const statement = filled.some((line) =>
+    /^(?:print|console\.log|puts|echo|printf|println)\s*\(/.test(line) ||
+    /^(?:def|class|function|const|let|var|import|from|SELECT|INSERT)\b/.test(line),
+  );
   scores.code =
     fences * 6 + codeKw * 1.35 + Math.min(codePunct, 14) * 0.4 + indented * 0.35;
   if (codeKw >= 2 && codePunct >= 2) scores.code += 3;
+  if (statement) scores.code += 6;
 
-  const dear = /^(?:dear|hello)\s+\S+/im.test(trimmed) || /^hi\s+[A-Z][\w'.-]*/m.test(raw);
+  const dear =
+    /^(?:dear)\s+\S+/im.test(trimmed) ||
+    /^(?:hello|hi)\s+\S+,/im.test(trimmed) ||
+    (/^(?:hello|hi)\s+[A-Z][\w'.-]*/m.test(raw) &&
+      /\b(sincerely|regards|warmly|cheers|yours|best wishes|talk soon|with love|all the best)\b/i.test(raw));
   const close = /\b(sincerely|regards|warmly|cheers|yours|best wishes|talk soon|with love|all the best)\b/i.test(
     raw,
   );

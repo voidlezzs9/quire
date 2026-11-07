@@ -23,3 +23,13 @@ test("Dear someone flips early", () => {
   const reading = classify("Dear Nia, I kept the fig");
   assert.equal(reading.form, "letter");
 });
+
+test("Hello world with a print is code", () => {
+  const reading = classify('Hello world\nprint("Hello World!")');
+  assert.equal(reading.form, "code", JSON.stringify(reading.scores));
+});
+
+test("Hello someone with a close is still a letter", () => {
+  const reading = classify("Hello Nia,\n\nCome by Sunday.\n\nYours,\nSam");
+  assert.equal(reading.form, "letter");
+});
