@@ -19,6 +19,16 @@ test("prose and unfinished lines stay as typed", () => {
   assert.equal(settleLine("Voltage 240 V ="), "Voltage 240 V =");
 });
 
+test("yen becomes the yen symbol", () => {
+  assert.equal(settleLine("500 yen"), "500 ¥");
+  assert.equal(settleLine("the Kenyan coast"), "the Kenyan coast");
+});
+
+test("a currency sum keeps its symbol", () => {
+  assert.equal(settleLine("$10 + $5 ="), "$10 + $5 = $15");
+  assert.equal(settleLine("Rs 500 + Rs 20 ="), "Rs 500 + Rs 20 = Rs 520");
+});
+
 test("only the line at the caret is settled", () => {
   const body = "eggs\n1 + 2 =";
   const settled = settleBody(body, body.length);

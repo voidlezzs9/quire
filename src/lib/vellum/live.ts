@@ -154,26 +154,54 @@ function isCalculable(expr: string): boolean {
 
 const NUMBER = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i;
 
+/** The word yen becomes ¥. Rs, $, and the other symbols are left as typed. */
+export function spellMoney(line: string): string {
+  return line.replace(/\byen\b/gi, "¥");
+}
+
+function stripMoney(expr: string): string {
+  return expr.replace(/[$€£¥₹]/g, "").replace(/\bRs\.?\s*/gi, "");
+}
+
+/** One currency repeated on the line, so the result can wear it too. */
+function moneyMark(expr: string): string {
+  const found = new Set<string>();
+  for (const match of expr.matchAll(/[$€£¥₹]|\bRs\.?/gi)) {
+    const token = match[0].toLowerCase().startsWith("rs") ? "Rs " : match[0];
+    found.add(token);
+  }
+  if (found.size !== 1) return "";
+  return [...found][0] ?? "";
+}
+
 /**
  * If this line is a live expression, finish it.
  * `1 + 2 =` becomes `1 + 2 = 3`. Prose that happens to contain "=" stays put.
+ * `500 yen` becomes `500 ¥`. `$10 + $5 =` becomes `$10 + $5 = $15`.
  */
 export function settleLine(line: string): string {
-  const match = line.match(/^(.*?)=([^\n]*)$/);
-  if (!match) return line;
+  const spelled = spellMoney(line);
+  const match = spelled.match(/^(.*?)=([^\n]*)$/);
+  if (!match) return spelled;
   const left = match[1] ?? "";
   const rhs = (match[2] ?? "").trim();
   const expr = left.trim();
-  if (!isCalculable(expr)) return line;
-  if (rhs !== "" && !NUMBER.test(rhs)) return line;
+  const bare = stripMoney(expr).trim();
+  if (!isCalculable(bare)) return spelled;
+  const rhsBare = stripMoney(rhs).trim();
+  if (rhsBare !== "" && !NUMBER.test(rhsBare)) return spelled;
   let value: string;
   try {
-    value = formatNum(evaluate(expr));
+    value = formatNum(evaluate(bare));
   } catch {
-    return line;
+    return spelled;
   }
-  if (rhs === value) return line;
-  return `${left.trimEnd()} = ${value}`;
+  const symbol = moneyMark(expr);
+  const shown = symbol ? `${symbol}${value}` : value;
+  if (rhsBare === value && (symbol === "" || rhs.replace(/\s/g, "").startsWith(symbol.replace(/\s/g, "")))) {
+    return spelled;
+  }
+  return `${left.trimEnd()} = ${shown}`;
 }
 
 export function settleBody(text: string, caret: number): { text: string; caret: number } {
@@ -182,13 +210,25 @@ export function settleBody(text: string, caret: number): { text: string; caret: 
   const breakAt = text.indexOf("\n", safe);
   const end = breakAt === -1 ? text.length : breakAt;
   const line = text.slice(start, end);
-  const contentEnd = start + line.trimEnd().length;
+  const local = safe - start;
+  const contentEnd = line.trimEnd().length;
   const settled = settleLine(line);
   if (settled === line) return { text, caret: safe };
   const rhs = line.slice(line.indexOf("=") + 1).trim();
-  const editingMiddle = safe < contentEnd && rhs === "";
+  const editingMiddle = local < contentEnd && rhs === "" && settled.includes("=");
   if (editingMiddle) return { text, caret: safe };
   const next = text.slice(0, start) + settled + text.slice(end);
-  const nextCaret = safe >= contentEnd ? start + settled.length : safe;
+  const nextCaret = start + mapCaret(line, settled, local);
   return { text: next, caret: nextCaret };
+}
+
+function mapCaret(before: string, after: string, caret: number): number {
+  if (caret >= before.trimEnd().length) return after.length;
+  let shift = 0;
+  for (const match of before.matchAll(/\byen\b/gi)) {
+    const index = match.index ?? 0;
+    if (index + match[0].length <= caret) shift += match[0].length - 1;
+    else break;
+  }
+  return Math.min(Math.max(0, caret - shift), after.length);
 }

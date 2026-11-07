@@ -24,10 +24,29 @@ function markInline(escaped: string): string {
     );
 }
 
+const CODE_WORD =
+  "function|const|let|var|import|export|return|class|def|async|await|interface|elif|lambda|print|console|SELECT|INSERT|FROM|WHERE";
+
 function markCode(line: string): string {
   return esc(line).replace(
-    /\b(function|const|let|var|import|export|return|class|def|async|await|if|else|from|type|interface|new)\b/g,
+    new RegExp(`\\b(${CODE_WORD}|if|else|from|type|new)\\b`, "gi"),
     (match) => `<span class="mk-key">${match}</span>`,
+  );
+}
+
+function markWords(escaped: string): string {
+  return escaped
+    .replace(
+      /\b(sin|cos|tan|log|ln|sqrt|abs)\b(?=\s*\()/gi,
+      (match) => `<span class="mk-key">${match}</span>`,
+    )
+    .replace(new RegExp(`\\b(${CODE_WORD})\\b`, "gi"), (match) => `<span class="mk-key">${match}</span>`);
+}
+
+function markMoney(escaped: string): string {
+  return escaped.replace(
+    /(?:[$€£¥₹]\s?\d[\d,]*(?:\.\d+)?)|(?:\b\d[\d,]*(?:\.\d+)?\s?[$€£¥₹])|(?:\b(?:Rs\.?|INR|USD|EUR|GBP)\s?\d[\d,]*(?:\.\d+)?)/gi,
+    (match) => `<span class="mk-money">${match}</span>`,
   );
 }
 
@@ -60,7 +79,9 @@ export function renderMarks(text: string, form: FormId, checked: readonly string
     .map((line) => {
       const key = lineKey(line);
       const struck = key.length > 0 && done.has(key);
-      let html = form === "code" ? markCode(line) : markInline(esc(line));
+      const escaped = esc(line);
+      let html = form === "code" ? markCode(line) : markWords(markInline(escaped));
+      html = markMoney(html);
       html = markResult(html, line);
       if (form !== "code" && isHeading(line)) html = `<span class="mk-h">${html}</span>`;
       if (struck) html = `<span class="mk-done">${html}</span>`;
