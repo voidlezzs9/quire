@@ -10,20 +10,34 @@ function esc(value: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/** Keyword passes must not see the word "class" inside a span we already wrote. */
+function replaceText(html: string, pattern: RegExp, wrap: (match: string) => string): string {
+  return html
+    .split(/(<[^>]*>)/g)
+    .map((part) => {
+      if (part.startsWith("<")) return part;
+      pattern.lastIndex = 0;
+      return part.replace(pattern, wrap);
+    })
+    .join("");
+}
+
 function markInline(escaped: string): string {
-  return escaped
-    .replace(
-      /\b\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?\b/g,
-      (match) => `<span class="mk-time">${match}</span>`,
-    )
-    .replace(
-      /\b\d+(?:[./]\d+)?\s*(?:cups?|tbsp|tsp|teaspoons?|tablespoons?|grams?|kg|ml|oz|ounces?|lbs?|pounds?|cloves?|pinches?)\b/gi,
-      (match) => `<span class="mk-qty">${match}</span>`,
-    )
-    .replace(
-      /\b\d{2,3}\s*°\s*[fc]?\b/gi,
-      (match) => `<span class="mk-time">${match}</span>`,
-    );
+  const timed = replaceText(
+    escaped,
+    /\b\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?\b/g,
+    (match) => `<span class="mk-time">${match}</span>`,
+  );
+  const measured = replaceText(
+    timed,
+    /\b\d+(?:[./]\d+)?\s*(?:cups?|tbsp|tsp|teaspoons?|tablespoons?|grams?|kg|ml|oz|ounces?|lbs?|pounds?|cloves?|pinches?)\b/gi,
+    (match) => `<span class="mk-qty">${match}</span>`,
+  );
+  return replaceText(
+    measured,
+    /\b\d{2,3}\s*°\s*[fc]?\b/gi,
+    (match) => `<span class="mk-time">${match}</span>`,
+  );
 }
 
 const CODE_WORD =
@@ -37,25 +51,36 @@ function markCode(line: string): string {
 }
 
 function markWords(escaped: string): string {
-  return escaped
-    .replace(
-      /\b(sin|cos|tan|log|ln|sqrt|abs)\b(?=\s*\()/gi,
-      (match) => `<span class="mk-key">${match}</span>`,
-    )
-    .replace(new RegExp(`\\b(${CODE_WORD})\\b`, "gi"), (match) => `<span class="mk-key">${match}</span>`);
+  const named = replaceText(
+    escaped,
+    /\b(sin|cos|tan|log|ln|sqrt|abs)\b(?=\s*\()/gi,
+    (match) => `<span class="mk-key">${match}</span>`,
+  );
+  return replaceText(
+    named,
+    new RegExp(`\\b(${CODE_WORD})\\b`, "gi"),
+    (match) => `<span class="mk-key">${match}</span>`,
+  );
 }
 
 function markMoney(escaped: string): string {
   MONEY_AMOUNT.lastIndex = 0;
-  return escaped.replace(MONEY_AMOUNT, (match) => `<span class="mk-money">${match}</span>`);
+  return replaceText(escaped, MONEY_AMOUNT, (match) => `<span class="mk-money">${match}</span>`);
 }
 
 function markResult(escaped: string, raw: string): string {
   if (!/=\s*-?\d/.test(raw)) return escaped;
-  return escaped.replace(
-    /(=\s*)(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*$/i,
-    `$1<span class="mk-result">$2</span>`,
-  );
+  return escaped
+    .split(/(<[^>]*>)/g)
+    .map((part) =>
+      part.startsWith("<")
+        ? part
+        : part.replace(
+            /(=\s*)(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*$/i,
+            `$1<span class="mk-result">$2</span>`,
+          ),
+    )
+    .join("");
 }
 
 /**
